@@ -1,0 +1,57 @@
+# 저장소 경로: .github/workflows/deploy.yml
+# Vue(Vite) 프로젝트를 빌드해서 GitHub Pages에 배포하는 워크플로우
+name: Deploy Vue site to Pages
+
+on:
+  # main 브랜치에 push될 때 실행
+  push:
+    branches: ["main"]
+
+  # Actions 탭에서 수동 실행 허용
+  workflow_dispatch:
+
+# GITHUB_TOKEN에 Pages 배포 권한 부여
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 동시에 하나의 배포만 허용 (진행 중인 배포는 취소하지 않음)
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  # 빌드 job
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+      - name: Install dependencies
+        run: npm ci
+      - name: Build with Vite
+        run: npm run build
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./dist
+
+  # 배포 job
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5
